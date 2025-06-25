@@ -1,0 +1,76 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">  <!-- Character encoding -->
+  <title>Text-to-Speech Demo</title>  <!-- Browser tab title -->
+</head>
+<body>
+  <h1>Text-to-Speech</h1>  <!-- Page heading -->
+
+  <!-- Text area for user input -->
+  <textarea id="text-input"
+            rows="6" cols="60"
+            placeholder="Type something…"></textarea>
+  <br>
+
+  <!-- Dropdown for selecting a voice -->
+  <label for="voice-select">Voice:</label>
+  <select id="voice-select">
+    {% for id, desc in voices %}    <!-- Loop over passed-in voices -->
+      <option value="{{ id }}">{{ desc }}</option>
+    {% endfor %}
+  </select>
+
+  <!-- Numeric input for speech rate -->
+  <label for="rate-input">Rate:</label>
+  <input type="number" id="rate-input"
+         value="200"            <!-- Default WPM -->
+         min="50" max="400">    <!-- Allowed range -->
+
+  <!-- Numeric input for volume -->
+  <label for="vol-input">Volume:</label>
+  <input type="number" id="vol-input"
+         value="1.0"            <!-- Default full volume -->
+         step="0.1" min="0.0" max="1.0">
+
+  <!-- Button to trigger playback -->
+  <button id="play-btn">Play</button>
+
+  <!-- Hidden audio player; revealed when audio is ready -->
+  <audio id="player" controls hidden></audio>
+
+  <script>
+    // Attach click handler to Play button
+    document.getElementById('play-btn').addEventListener('click', async () => {
+      const text   = document.getElementById('text-input').value.trim();
+      const voice  = document.getElementById('voice-select').value;
+      const rate   = document.getElementById('rate-input').value;
+      const volume = document.getElementById('vol-input').value;
+
+      if (!text) return alert('Please enter some text.');
+
+      // Send POST to /speak with JSON payload
+      const resp = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice, rate, volume })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => 'Error');
+        return alert('Synthesis failed: ' + (err.error || resp.status));
+      }
+
+      // Convert response to Blob, create URL, assign to <audio>, then play
+      const blob   = await resp.blob();
+      const url    = URL.createObjectURL(blob);
+      const player = document.getElementById('player');
+      player.src    = url;         // Set audio source
+      player.hidden = false;       // Unhide player
+      player.play();               // Start playback
+    });
+  </script>
+</body>
+</html>
