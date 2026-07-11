@@ -51,9 +51,9 @@ def authenticate_user(db: Session, username: str, password: str):
         return False
     return user
 
-def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+def create_access_token(username: str, user_id: int, role: str, expires_delta: timedelta):
     
-    encode= {"sub": username, "id": user_id}
+    encode= {"sub": username, "id": user_id, "role": role}
     expires_delta = datetime.utcnow() + expires_delta
     encode.update({"exp": expires_delta})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -62,13 +62,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)], db: db
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         user_id: int = payload.get("id")
+        role: str = payload.get("role")
         if username is None or user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        return {"username": username, "id": user_id}
+        return {"username": username, "id": user_id, "role": role}
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,6 +103,6 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token= create_access_token(user.username, user.id, timedelta(minutes=30))
+    token= create_access_token(user.username, user.id, user.role, timedelta(minutes=30))
     return Token(access_token=token, token_type="bearer")
 
