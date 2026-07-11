@@ -4,7 +4,8 @@
 /.idea/modules.xml
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/vcs.xml
-
+*todosapp.db*
+.DS_Store
 __pycache__/
 .idea
 venv
