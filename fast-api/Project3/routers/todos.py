@@ -66,8 +66,14 @@ async def create_todo(
     db.commit()
 
 @router.put("/todo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
-async def update_todo(todo_id: int, todo_request: todo_request, db: Session = Depends(get_db)):
-    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).first()
+async def update_todo(user: user_dependency, todo_id: int, todo_request: todo_request, db: Session = Depends(get_db)):
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(models.Todos.owner_id == user.get("id")).first()
     
     if todo_model is None:
         raise HTTPException(
@@ -82,8 +88,14 @@ async def update_todo(todo_id: int, todo_request: todo_request, db: Session = De
     return todo_model
 
 @router.delete("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(todo_id: int, db: Session = Depends(get_db)):
-    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).first()
+async def delete_todo(user: user_dependency, todo_id: int, db: Session = Depends(get_db)):
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(models.Todos.owner_id == user.get("id")).first()
     
     if todo_model is None:
         raise HTTPException(
